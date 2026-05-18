@@ -1,0 +1,321 @@
+<ui:FluentWindow x:Class="docker_monitor.MainWindow"
+                  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                  xmlns:vm="clr-namespace:docker_monitor.ViewModels"
+                  xmlns:views="clr-namespace:docker_monitor.Views"
+                  Title="Docker Monitor" 
+                  Height="1000" Width="1500"
+                  MinWidth="1200" MinHeight="800"
+                  WindowStartupLocation="CenterScreen"
+                  Background="{StaticResource IndigoBlackGradientBrush}"
+                  ExtendsContentIntoTitleBar="True"
+                  WindowBackdropType="Mica"
+                  Icon="app_icon.png">
+    
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <ui:FluentWindow.Resources>
+        <DataTemplate DataType="{x:Type vm:ContainerDetailsViewModel}">
+            <views:ContainerDetailsView />
+        </DataTemplate>
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <ui:NavigationView x:Name="RootNavigation"
+                           PaneDisplayMode="Left"
+                           IsBackButtonVisible="Collapsed"
+                           OpenPaneLength="240">
+            <ui:NavigationView.PaneHeader>
+                <Grid Margin="20,8,5,15">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=RootNavigation, Path=IsPaneOpen}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Cube24" FontSize="24" Margin="0,0,12,0" Foreground="{StaticResource IndigoPrimaryBrush}" />
+                        <TextBlock Text="Docker Monitor" 
+                                   FontSize="22" 
+                                   FontWeight="ExtraBold" 
+                                   Foreground="White"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </ui:NavigationView.PaneHeader>
+
+            <ui:NavigationView.Header>
+                <Grid Margin="0,32,0,0" />
+            </ui:NavigationView.Header>
+
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="대시보드" Icon="{ui:SymbolIcon Cube24}" TargetPageTag="dashboard" Click="OnMenuItemClick" />
+                <ui:NavigationViewItem Content="전체 통계" Icon="{ui:SymbolIcon ChartMultiple24}" TargetPageTag="stats" Click="OnMenuItemClick" />
+                <ui:NavigationViewItem Content="통합 로그" Icon="{ui:SymbolIcon DocumentText24}" TargetPageTag="logs" Click="OnMenuItemClick" />
+            </ui:NavigationView.MenuItems>
+
+            <ui:NavigationView.ContentOverlay>
+                <Grid Margin="20,10,20,20">
+                    <Grid Visibility="{Binding CurrentPageTag, Converter={StaticResource EqualToVisibilityConverter}, ConverterParameter=dashboard}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      Visibility="{Binding SelectedContainerDetails, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
+                            <StackPanel>
+                                <Grid Margin="30,20,30,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                                        <ui:SymbolIcon Symbol="Cube24" FontSize="24" Margin="0,0,12,0" Foreground="{StaticResource IndigoPrimaryBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="컨테이너 목록" FontSize="28" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="1" 
+                                               Content="새로고침" 
+                                               Icon="{ui:SymbolIcon ArrowCounterclockwise24}" 
+                                               Command="{Binding RefreshContainersCommand}" 
+                                               Appearance="Secondary"
+                                               VerticalAlignment="Center"
+                                               Padding="12,6" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding Containers}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Margin="20" HorizontalAlignment="Center" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource GlassCardStyle}" 
+                                                    Width="310" Height="180" Margin="12"
+                                                    Cursor="Hand">
+                                                <Border.InputBindings>
+                                                    <MouseBinding MouseAction="LeftClick" 
+                                                                  Command="{Binding DataContext.SelectContainerCommand, RelativeSource={RelativeSource AncestorType=ui:FluentWindow}}" 
+                                                                  CommandParameter="{Binding}"/>
+                                                </Border.InputBindings>
+                                                <Grid Margin="20">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <StackPanel Orientation="Horizontal" Grid.Row="0">
+                                                        <ui:SymbolIcon Symbol="Cube24" Foreground="{StaticResource IndigoPrimaryBrush}" Margin="0,0,10,0"/>
+                                                        <TextBlock Text="{Binding Name}" FontSize="17" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Row="1" Margin="0,15,0,0">
+                                                        <TextBlock Text="{Binding PortsDisplay}" 
+                                                                   Foreground="{StaticResource IndigoSecondaryBrush}" 
+                                                                   FontSize="14" 
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                                                            <Ellipse Width="10" Height="10" Margin="0,0,8,0">
+                                                                <Ellipse.Style>
+                                                                    <Style TargetType="Ellipse">
+                                                                        <Setter Property="Fill" Value="#FFFF4444" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding State}" Value="running">
+                                                                                <Setter Property="Fill" Value="#FF00C853" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Ellipse.Style>
+                                                            </Ellipse>
+                                                            <TextBlock Foreground="White" FontSize="13" VerticalAlignment="Center">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Text" Value="정지됨" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding State}" Value="running">
+                                                                                <Setter Property="Text" Value="정상 가동" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding State}" Value="exited">
+                                                                                <Setter Property="Text" Value="종료됨" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding State}" Value="created">
+                                                                                <Setter Property="Text" Value="생성됨" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <ContentControl Content="{Binding SelectedContainerDetails}" 
+                                        Visibility="{Binding SelectedContainerDetails, Converter={StaticResource NullToVisibilityConverter}}" />
+                    </Grid>
+
+                    <Grid Visibility="{Binding CurrentPageTag, Converter={StaticResource EqualToVisibilityConverter}, ConverterParameter=stats}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="20">
+                                <StackPanel Orientation="Horizontal" Margin="10,0,0,25">
+                                    <ui:SymbolIcon Symbol="ChartMultiple24" FontSize="24" Margin="0,0,12,0" Foreground="{StaticResource IndigoPrimaryBrush}" />
+                                    <TextBlock Text="실시간 시스템 상태" FontSize="28" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding GlobalStats}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel HorizontalAlignment="Center" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource GlassCardStyle}" Width="310" Margin="10" Padding="20" Cursor="Hand">
+                                                <Border.InputBindings>
+                                                    <MouseBinding MouseAction="LeftClick" 
+                                                                  Command="{Binding DataContext.SelectContainerByIdCommand, RelativeSource={RelativeSource AncestorType=ui:FluentWindow}}" 
+                                                                  CommandParameter="{Binding Id}"/>
+                                                </Border.InputBindings>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                                        <Ellipse Width="8" Height="8" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                            <Ellipse.Style>
+                                                                <Style TargetType="Ellipse">
+                                                                    <Setter Property="Fill" Value="#FFFF4444" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="running">
+                                                                            <Setter Property="Fill" Value="#FF00C853" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Ellipse.Style>
+                                                        </Ellipse>
+                                                        <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                                                        <Grid Margin="0,0,0,5">
+                                                            <TextBlock Text="CPU" Foreground="#FFAAAAAA" FontSize="11" />
+                                                            <TextBlock Text="{Binding Cpu, StringFormat={}{0:F1}%}" Foreground="White" FontSize="11" HorizontalAlignment="Right" />
+                                                        </Grid>
+                                                        <ProgressBar Value="{Binding Cpu}" Height="4" Foreground="{StaticResource IndigoPrimaryBrush}" Background="#20FFFFFF" BorderThickness="0" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Row="2">
+                                                        <Grid Margin="0,0,0,5">
+                                                            <TextBlock Text="Memory" Foreground="#FFAAAAAA" FontSize="11" />
+                                                            <TextBlock Text="{Binding Memory, StringFormat={}{0:F1} MB}" Foreground="White" FontSize="11" HorizontalAlignment="Right" />
+                                                        </Grid>
+                                                        <ProgressBar Value="{Binding MemoryPercent}" Height="4" Foreground="{StaticResource IndigoSecondaryBrush}" Background="#20FFFFFF" BorderThickness="0" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <Grid Visibility="{Binding CurrentPageTag, Converter={StaticResource EqualToVisibilityConverter}, ConverterParameter=logs}">
+                        <Grid Margin="20">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            
+                            <Grid Grid.Row="0" Margin="10,0,0,20">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="DocumentText24" FontSize="24" Margin="0,0,12,0" Foreground="{StaticResource IndigoPrimaryBrush}" />
+                                    <TextBlock Text="통합 로그 실시간 모니터링" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding GlobalLogCountDisplay}" Foreground="#FFAAAAAA" FontSize="11" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                    <ui:Button Content="전체 로그 내보내기" Icon="{ui:SymbolIcon ArrowDownload24}" 
+                                               Appearance="Secondary" Padding="12,4" FontSize="12" Margin="0,0,10,0"
+                                               Click="OnDownloadClick" />
+                                </StackPanel>
+
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Background="{StaticResource IndigoPrimaryBrush}" Padding="10,3" CornerRadius="4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="6" Height="6" Fill="#FF00FF00" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding GlobalSocketStatus}" Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            
+                            <Border Grid.Row="1" Style="{StaticResource GlassCardStyle}" Background="#D0000000" Padding="5">
+                                <ScrollViewer x:Name="GlobalLogsScrollViewer" VerticalScrollBarVisibility="Auto" 
+                                              Padding="15" ScrollChanged="GlobalLogsScrollViewer_ScrollChanged"
+                                              PreviewMouseWheel="GlobalLogsScrollViewer_PreviewMouseWheel">
+                                    <ItemsControl ItemsSource="{Binding GlobalLogs}"
+                                                 VirtualizingStackPanel.IsVirtualizing="True"
+                                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                                 ScrollViewer.CanContentScroll="True">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Message, Mode=OneWay}" 
+                                                         IsReadOnly="True"
+                                                         BorderThickness="0"
+                                                         Background="Transparent"
+                                                         FontFamily="Consolas" 
+                                                         FontSize="13" 
+                                                         Padding="0"
+                                                         Margin="0,3"
+                                                         TextWrapping="NoWrap"
+                                                         IsUndoEnabled="False"
+                                                         SelectionBrush="{StaticResource IndigoPrimaryBrush}">
+                                                    <TextBox.Style>
+                                                        <Style TargetType="TextBox">
+                                                            <Setter Property="Foreground" Value="#FFBBBBBB" />
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="TextBox">
+                                                                        <ScrollViewer x:Name="PART_ContentHost" />
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Level}" Value="ERROR">
+                                                                    <Setter Property="Foreground" Value="#FFFF5555" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="WARN">
+                                                                    <Setter Property="Foreground" Value="#FFFFA500" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="INFO">
+                                                                    <Setter Property="Foreground" Value="#FF00FF00" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                </TextBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </ui:NavigationView.ContentOverlay>
+        </ui:NavigationView>
+        
+        <ui:TitleBar Title="" Height="32" VerticalAlignment="Top" Margin="48,0,0,0" />
+    </Grid>
+</ui:FluentWindow>

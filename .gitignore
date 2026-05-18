@@ -1,0 +1,25 @@
+# 🐳 Docker Monitor - Git Ignore Settings
+
+# 1. Private Configuration (Crucial for Public Repo!)
+.env
+config.json
+*.log
+
+# 2. .NET Build and Output folders
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+publish/
+
+# 3. Visual Studio / IDE Settings
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# 4. OS temporary files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
